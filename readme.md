@@ -18,7 +18,6 @@ In this example, I will use maps created by [Dee-Dee](https://bsaber.com/members
 This notebook generates a map for the song [Big In Japan by Alphaville](https://www.youtube.com/embed/_IYjBCLKmBE). This first version was without the automatic lighting effects.
 
 I also rendered a map for `Maria [I Like It Loud]` by Scooter after adding automatic lighting capabilities. The result can be seen on [Youtube](https://youtu.be/iQaO4YG7Su0)
-<iframe width="560" height="315" src="https://www.youtube.com/embed/iQaO4YG7Su0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
 ## How to use this code
 
