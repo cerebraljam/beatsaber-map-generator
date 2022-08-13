@@ -277,7 +277,7 @@ sample_light = {
 
 The pairs of `_type` and `_value` maps to specific conditions, which looks like this
 
-![beat_saber_lighting_track.png](attachment:beat_saber_lighting_track.png)
+![png](beatsaber_map_generator_big_in_japan_files/attachment:beat_saber_lighting_track.png)
 
 A major difference with the blocks is that some of these lights are toggles. They will go on, and stay on until they are turned off, which makes it harder train on since a certain light might be turned off a few sequences later, completely out of context with when it was activated.
 
@@ -291,13 +291,6 @@ cut_dir = "wxadqezcs"
 
 lighting_type = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 lighting_value = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-# def encode_block(note):
-#     try:
-#         return str(note["_lineIndex"]) + layer[note["_lineLayer"]] + colour[note["_type"]] + cut_dir[note["_cutDirection"]]
-#     except:
-#         print(note)
-#         raise
 
 def encode_block(note, light):
     seq = (
