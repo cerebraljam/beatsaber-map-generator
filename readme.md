@@ -14,7 +14,30 @@ The following code demonstrates the approach I took. and given that it fits in 2
 
 In this example, I will use maps created by [Dee-Dee](https://bsaber.com/members/dee-dee/), [Nixie.Korten](https://bsaber.com/members/Nixie.Korten/) and [misterlihao](https://bsaber.com/members/misterlihao/), mainly because their maps tend to have a nice flow. The results will tend to be quite different depending on the tracks that are used for the training. Going all in with all the custom tracks I might have on my computer produced too much randomness, so targeting on a specific style seems to work better.
 
-This time, I will try to generate a map for the song Big In Japan by Alphaville.
+
+This notebook generates a map for the song [Big In Japan by Alphaville](https://www.youtube.com/embed/_IYjBCLKmBE). This first version was without the automatic lighting effects.
+
+I also rendered a map for `Maria [I Like It Loud]` by Scooter after adding automatic lighting capabilities. The result can be seen on [Youtube](https://youtu.be/iQaO4YG7Su0)
+<iframe width="560" height="315" src="https://www.youtube.com/embed/iQaO4YG7Su0" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+
+## How to use this code
+
+[Beastsaber has excellent instructions](https://bsaber.com/getting-started/mapping/) explaining how to prepare an audio file for mapping.
+
+At a high level, the following steps are necessary:
+1. Software Setup: Download the necessary tools for mapping: an [audio editor](https://www.audacityteam.org/) and a [map editor](https://bsmg.wiki/mapping/#map-editing-resources).
+2. Audio Setup: [Set up your audio file](https://bsmg.wiki/mapping/basic-audio.html), find and confirm the BPM, and export in OGG format.
+    * Adding 8 full beat before the song starts gives some time to see the first blocks comming
+   
+3. Editor Setup & Mapping: Set up your song in your [mapping editor](https://bsmg.wiki/mapping/#community-editors) (we recommend MMA2) and get mapping! Review [basic mapping practices](https://bsmg.wiki/mapping/basic-mapping.html) before you start. [Playtest](https://bsmg.wiki/mapping/#playtesting) your own work early and often.
+
+<- This is where we can insert ourselves in the creation process
+
+4. Lighting: Review [basic lighting information](https://bsmg.wiki/mapping/#lighting-practices). Simple manual lighting is easier than you think!
+5. ~Playtesting: Third-party playtesting via the BSMG Discord is highly recommended to get constructive feedback and to get past your own “map blindness.~
+6. ~Release Your  Map: Once your song has been mapped, lighted, and playtested you’re ready to release your song to the world on BeatSaver (it will mirror here to BeastSaber in a few minutes).~
+
+^ About the two last steps: the result will be quite random, and not worthy of standing along all the great work from real mappers. 
 
 
 ```python
@@ -108,7 +131,7 @@ notes_files
 
 ```python
 # MODIFY ME
-song_output_folder = "Alphaville - Big In Japan"
+song_output_folder = "Alphaville - Big In Japan - 97.79"
 
 first_beat = 16
 last_beat = 368
@@ -118,9 +141,9 @@ last_beat = 368
 ```python
 # probably ok to leave me unmodified
 
-
 # uses two beats for one sequence of blocks
-# longer sequences (ex.: 4) reduces the randomness since it reduces the potential possibility of chaining sequences
+# longer sequences (ex.: 4) reduces the randomness since it reduces the potential possibility of 
+# chaining sequences
 sequence_length = 2 
 
 # precision: break each beat in 8 parts. 1/8 of a beat. necessary for fast songs. 
@@ -171,7 +194,7 @@ info_dat
      '_previewDuration': 10,
      '_songFilename': 'song.ogg',
      '_coverImageFilename': 'cover.jpg',
-     '_environmentName': 'DefaultEnvironment',
+     '_environmentName': 'PanicEnvironment',
      '_songTimeOffset': 0,
      '_customData': {'_contributors': [],
       '_editors': {'MMA2': {'version': '4.8.4'}, '_lastEditedBy': 'MMA2'}},
@@ -190,7 +213,9 @@ info_dat
 
 
 
-ExpertStandard.dat contains multiple sections. The one that is interesting is the "_notes" section, which contains a long series of entries like the folowing:
+## How Blocks Are Encoded
+
+ExpertStandard.dat is a JSON file, and contains multiple sections. The one that is interesting is the "_notes" section, which contains a long series of entries like the folowing:
 
 
 ```python
@@ -203,7 +228,7 @@ sample_block = {
 }
 ```
 
-The _time identifies the beat where that specific entry will show up.
+The `_time` key identifies the beat where that specific entry will show up.
 
 The following lines are a bit more cryptic, but here is a lookup table, and with which charactor I translate them when I flatten each block for processing.
 
@@ -236,6 +261,27 @@ Cut Direction. I don't have a numeric keypad on my keyboard, so I used the left 
 * _cutDirection: 8 "all" s
 
 
+## How Lighting is encoded
+
+The lighting track (`_events` key in the ExpertStandard.dat JSON file) is a lot more complex than the `_notes` track.
+
+A single lighting event looks like this:
+
+
+```python
+sample_light = {
+    "_time": 52.5,
+    "_type": 1,
+    "_value": 5,
+}
+```
+
+The pairs of `_type` and `_value` maps to specific conditions, which looks like this
+
+![beat_saber_lighting_track.png](attachment:beat_saber_lighting_track.png)
+
+A major difference with the blocks is that some of these lights are toggles. They will go on, and stay on until they are turned off, which makes it harder train on since a certain light might be turned off a few sequences later, completely out of context with when it was activated.
+
 ## Function that translates the nodes into a pattern string
 
 
@@ -244,12 +290,30 @@ layer = "zaq"
 colour = "rb?x"
 cut_dir = "wxadqezcs"
 
-def encode_block(note):
-    try:
-        return str(note["_lineIndex"]) + layer[note["_lineLayer"]] + colour[note["_type"]] + cut_dir[note["_cutDirection"]]
-    except:
-        print(note)
-        raise
+lighting_type = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+lighting_value = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+# def encode_block(note):
+#     try:
+#         return str(note["_lineIndex"]) + layer[note["_lineLayer"]] + colour[note["_type"]] + cut_dir[note["_cutDirection"]]
+#     except:
+#         print(note)
+#         raise
+
+def encode_block(note, light):
+    seq = (
+        str(note["_lineIndex"]) 
+        + layer[note["_lineLayer"]] 
+        + colour[note["_type"]] 
+        + cut_dir[note["_cutDirection"]]
+    )
+
+    if light != False:
+        seq = seq + lighting_type[light['_type']] + lighting_value[light['_value']]
+    else:
+        seq = seq + lighting_type[random.randint(0,5)] + lighting_value[0]
+    
+    return seq
 
 def decode_pattern(base, precision, seq):
     seqs = json.loads(seq)
@@ -266,8 +330,22 @@ def decode_pattern(base, precision, seq):
             })
     return outputs
 
-assert encode_block(sample_block) == "3abw", f"the output from encoding isn't matching expectations"
-assert json.dumps(decode_pattern(sample_block['_time'], precision, '[["3abw"]]')) == json.dumps([sample_block]), f"decoded pattern isn't matching the original block"
+def decode_lighting(base, precision, seq):
+    seqs = json.loads(seq)
+    lights = []
+    
+    for i in range(len(seqs)):
+        for j in range(len(seqs[i])):
+            lights.append({
+                "_time": base+(i/precision),
+                "_type": lighting_type.index(seqs[i][j][4]),
+                "_value": lighting_value.index(seqs[i][j][5])
+            })
+    return lights
+
+assert encode_block(sample_block, sample_light) == "3abwbf", f"the output from encoding isn't matching expectations"
+assert json.dumps(decode_pattern(sample_block['_time'], precision, '[["3abwbf"]]')) == json.dumps([sample_block]), f"decoded pattern isn't matching the original block"
+assert json.dumps(decode_lighting(sample_light['_time'], precision, '[["3abwbf"]]')) == json.dumps([sample_light]), f"decoded pattern isn't matching the original block"
 
 ```
 
@@ -281,7 +359,6 @@ def extract_last_pattern(seq, sequence_length, precision):
 
 def remember_patterns(track, sequence_length, precision):
     global following
-#     global partial_following
     
     previous_pattern = ""
     previous_end = ""
@@ -296,17 +373,12 @@ def remember_patterns(track, sequence_length, precision):
         
         
         current_end = json.dumps(track[i][-precision:])
-#         if previous_end not in partial_following.keys():
-#             partial_following[previous_end] = []
-        
-#         partial_following[previous_end].append(current_end)
         previous_end = current_end 
 
 def give_me_following(full_encoded_seq, sequence_length, precision):
     decoded_seq = json.loads(full_encoded_seq)
     
     last_pattern = extract_last_pattern(decoded_seq, sequence_length, precision)
-#     print('last_pattern:', last_pattern)
     
     return last_pattern
 ```
@@ -325,9 +397,17 @@ def read_track_file(base_folder, song_output_folder, difficulty_file):
     print("File '{}/{}' not found. skipping folder".format(song_output_folder, difficulty_file))
     return False
 
+def find_lighting_for_note(lightings, t):
+    for event in lightings:
+        if event['_time'] > t:
+            return False
+        elif event['_time'] == t:
+            return event
+    
+    return False
 
 def convert_json_to_patterns(file, sequence_length, precision, content):
-    if "_notes" not in content.keys():
+    if "_notes" not in content.keys() or "_events" not in content.keys():
         print("* this is a new song:", file)
         print(content.keys())
         return False
@@ -351,7 +431,7 @@ def convert_json_to_patterns(file, sequence_length, precision, content):
         seq = idx//(sequence_length*precision)
         pos = idx%(sequence_length*precision)
 
-        encoded = encode_block(block)
+        encoded = encode_block(block, find_lighting_for_note(content["_events"], block["_time"]))
         try:
             track[seq][pos].append(encoded)
         except:
@@ -445,7 +525,7 @@ sample_per_beat = int(Fs * song_spb)
 print(f"Folder: {song_output_folder}\nfile: {song_file_name}\nbpm: {song_bpm}\nbps: {song_bps}\nseconds per beat: {song_spb}\naudio samples per beat: {sample_per_beat}")
 ```
 
-    Folder: Alphaville - Big In Japan
+    Folder: Alphaville - Big In Japan - 97.79
     file: song.ogg
     bpm: 97.79000091552734
     bps: 1.6298333485921224
@@ -469,32 +549,15 @@ plt.show()
 
 
     
-![png](beatsaber_map_generator3_files/beatsaber_map_generator3_26_1.png)
-    
-
-
-## spectogram of the right channel
-
-
-```python
-aud_right = aud[:,1] # select right channel only
-
-powerSpectrum, frequenciesFound, time, imageAxis = plt.specgram(aud_right, Fs=Fs)
-plt.show()
-```
-
-
-    
-![png](beatsaber_map_generator3_files/beatsaber_map_generator3_28_0.png)
+![png](beatsaber_map_generator_big_in_japan_files/beatsaber_map_generator_big_in_japan_30_1.png)
     
 
 
 
 ```python
 positive_aud_left = [abs(x) for x in aud_left]
-positive_aud_right = [abs(x) for x in aud_right]
 
-range3 = max(max(positive_aud_left), max(positive_aud_right))
+range3 = max(positive_aud_left)
 range0 = range3 / 10
 
 break_down = []
@@ -505,7 +568,6 @@ for beat in range(int(len(positive_aud_left)/sample_per_beat)):
         boundary_right = int(boundary_left + ((p+1) * (sample_per_beat/precision)))
         
         noise_left = int(np.mean(positive_aud_left[boundary_left:boundary_right]))
-#         noise_right = int(np.mean(positive_first_left[boundary_left:boundary_right])
 
         break_down.append(int(noise_left//range0))
 ```
@@ -580,9 +642,9 @@ def test_selection(audio_sequence, candidate):
     c = np.array(candidate)
     r = a * c
     print('audio intensity:', a)
-    print('candidate:', c)
-    print('multiplication result:', r)
-    print('sum of the results (score):', sum(r))
+    print('* candidate:', c)
+    print('* multiplication result:', r)
+    print('* sum of the results (score):', sum(r))
 
 
 test_selection(audio_sequence, bad_candidate)
@@ -592,17 +654,17 @@ test_selection(audio_sequence, best_candidate)
 ```
 
     audio intensity: [3 4 2 2 2 2 2 2 2 2 2 3 3 3 2 2]
-    candidate: [1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0]
-    multiplication result: [3 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0]
-    sum of the results (score): 5
+    * candidate: [1 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0]
+    * multiplication result: [3 0 0 0 0 0 0 0 2 0 0 0 0 0 0 0]
+    * sum of the results (score): 5
     audio intensity: [3 4 2 2 2 2 2 2 2 2 2 3 3 3 2 2]
-    candidate: [2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    multiplication result: [6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
-    sum of the results (score): 6
+    * candidate: [2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    * multiplication result: [6 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0]
+    * sum of the results (score): 6
     audio intensity: [3 4 2 2 2 2 2 2 2 2 2 3 3 3 2 2]
-    candidate: [1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0]
-    multiplication result: [3 0 0 0 2 0 2 0 0 0 2 0 0 0 2 0]
-    sum of the results (score): 11
+    * candidate: [1 0 0 0 1 0 1 0 0 0 1 0 0 0 1 0]
+    * multiplication result: [3 0 0 0 2 0 2 0 0 0 2 0 0 0 2 0]
+    * sum of the results (score): 11
 
 
 
@@ -647,12 +709,11 @@ base = first_beat
 
 current_pattern = ""
 new_track = []
-random.seed(42)#len(notes_files) + last_beat)
-
+new_lights = []
+random.seed(42)
 
 beat = 0
-while base < last_beat:
-    
+while base < last_beat:    
     l = beat * precision * sequence_length
     r = (beat+1) * precision * sequence_length
     audio_sample = trimmed_intensity[l:r]
@@ -664,6 +725,9 @@ while base < last_beat:
         
     decoded = decode_pattern(base, precision, pattern)
     new_track = new_track + decoded
+    
+    decoded_light = decode_lighting(base, precision, pattern)
+    new_lights = new_lights + decoded_light
     
     current_pattern = give_me_following(pattern, sequence_length, precision)
 
@@ -680,8 +744,8 @@ If it crashes here because the output file does not exists, you might need to ge
 with open(output_file) as f:
     output_song = json.load(f)
 
-# print(output_song)
 output_song["_notes"] = new_track
+output_song["_events"] = new_lights
 
 with open(output_file, 'w') as f:
     f.write(json.dumps(output_song))
@@ -689,4 +753,8 @@ with open(output_file, 'w') as f:
 
 ## Conclusion
 
-The resulting mapping can be watched on [Youtube](https://youtu.be/_IYjBCLKmBE). Obviously it will never match the quality of a talented mapper. Still, it's playable. More than everything, it was fun to code.
+With the initial version of the code, I generated this mapping for [Big In Japan by Alphaville](https://youtu.be/_IYjBCLKmBE). That virst version was not adding lighting effects.
+
+The code in this notebook was also used to generate a mapping for [Maria (I Like It Loud) by Scooter](https://www.youtube.com/watch?v=iQaO4YG7Su0), but his time with lighting effects.
+
+Obviously it will never match the quality of a talented mapper. Still, it's playable. More than everything, it was fun to code.
