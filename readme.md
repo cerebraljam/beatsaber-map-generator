@@ -352,6 +352,12 @@ assert json.dumps(decode_lighting(sample_light['_time'], precision, '[["3abwbf"]
 def extract_last_pattern(seq, sequence_length, precision):
     return json.dumps(seq[-(sequence_length * precision):])
 
+def count_patterns(sequence):
+    cnt = 0
+    for i in sequence:
+        cnt+=len(i)
+    return cnt
+
 def remember_patterns(track, sequence_length, precision):
     global following
     
@@ -359,13 +365,14 @@ def remember_patterns(track, sequence_length, precision):
     previous_end = ""
 
     for i in range(len(track)):
-        current_pattern = json.dumps(track[i])    
+        current_pattern = json.dumps(track[i])
+        
         if previous_pattern not in following.keys():
             following[previous_pattern] = []
 
-        following[previous_pattern].append(current_pattern)     
-        previous_pattern = current_pattern 
-        
+        if count_patterns(track[i]) > 0:
+            following[previous_pattern].append(current_pattern)     
+            previous_pattern = current_pattern 
         
         current_end = json.dumps(track[i][-precision:])
         previous_end = current_end 
