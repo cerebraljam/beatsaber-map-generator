@@ -304,7 +304,7 @@ def encode_block(note, light):
     )
 
     if light != False:
-        seq = seq + lighting_type[light['_type']] + lighting_value[min(light['_value'], len(lighting_value))]
+        seq = seq + lighting_type[light['_type']] + lighting_value[min(light['_value'], len(lighting_value)-1)]
     else:
         seq = seq + lighting_type[random.randint(0,5)] + lighting_value[0]
     
