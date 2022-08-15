@@ -295,13 +295,6 @@ cut_dir = "wxadqezcs"
 lighting_type = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 lighting_value = "abcdefghijklmnopqrstuvwxyz1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-# def encode_block(note):
-#     try:
-#         return str(note["_lineIndex"]) + layer[note["_lineLayer"]] + colour[note["_type"]] + cut_dir[note["_cutDirection"]]
-#     except:
-#         print(note)
-#         raise
-
 def encode_block(note, light):
     seq = (
         str(note["_lineIndex"]) 
