@@ -109,10 +109,10 @@ song_queues = [
         "last_beat": 368,
     },
     {
-        "folder": "Vanilla Ice - Ice Ice Baby",
+        "folder": "Scooter - Maria (I Like It Loud)",
         "first_beat": 8,
-        "last_beat": 505,
-    }
+        "last_beat": 510
+      },
 ]
 ```
 
@@ -946,8 +946,8 @@ for song in song_queues:
 
     16 368
     Alphaville - Big In Japan - 97.79 random seed: 27057 -61481
-    Total run time: 24.37 seconds
-    44100 11662930
+    Total run time: 23.91 seconds
+    44100 9856018
 
 
 
@@ -956,9 +956,9 @@ for song in song_queues:
     
 
 
-    8 505
-    Vanilla Ice - Ice Ice Baby random seed: 22864 -266454
-    Total run time: 32.58 seconds
+    8 510
+    Scooter - Maria (I Like It Loud) random seed: 18503 12219149
+    Total run time: 30.86 seconds
 
 
 ## Conclusion
