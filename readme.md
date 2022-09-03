@@ -6,18 +6,25 @@ Still, I was curious to see if it would be possible to generate maps through pro
 
 The strategy was to take existing maps, break them into sequences (2 beats per sequence seems like a good balance), take note of which sequence follows which ones, and then randomly generate new maps based on these known patterns.
 
-That worked well, but it felt a bit random and didn't really follow the intensity of the songs I tried it on. When the whole song has about the same intensity level, it doesn't matter, but not for the ones with a drop.
+That worked well, kind of. What I noticed was that unless mappers reuses the same sequences of blocks, options for the "next sequence" will be quite limited to... the next sequence from that song.
 
-Compared to the Beat Sage AI backed generator, I don't really control what are the potential sequences I am getting at what point in the song, so I kind of have to do my best with what I have.
+This script end up actually reskining existing maps to new songs, which is still fun, but is far from original new sequences of beats.
 
-The following code demonstrates the approach I took. and given that it fits in 23 short blocks of code, and isn't requiring a great amount of GPU processing, I think it's fine for the fun I can get with the result.
+The following code demonstrates the approach I took. The result is fun, and was an interesting exercise to understand how maps can be rendered.
 
-In this example, I will use maps created by [Dee-Dee](https://bsaber.com/members/dee-dee/), [Nixie.Korten](https://bsaber.com/members/Nixie.Korten/) and [misterlihao](https://bsaber.com/members/misterlihao/), mainly because their maps tend to have a nice flow. The results will tend to be quite different depending on the tracks that are used for the training. Going all in with all the custom tracks I might have on my computer produced too much randomness, so targeting on a specific style seems to work better.
+In this example, I will use maps created by multipe mappers that I like to play and mainly because their maps tend to have a nice flow:
+* [Dee-Dee](https://bsaber.com/members/dee-dee/)
+* [Nixie.Korten](https://bsaber.com/members/Nixie.Korten/) 
+* [misterlihao](https://bsaber.com/members/misterlihao/)
+* [Joetastic](https://bsaber.com/members/joetastic/)
+* ... and some more. 
 
+Depending on the tracks that I downloaded from these mappers in my customLevels folder, the results will tend to be quite different. It's possible to train sequences on all maps in the customLevels by adding "" to the filtering list, but this will render inconsistent songs when there is a wide range of music style. Focusing on specific styles seems to work better.
 
-This notebook generates a map for the song [Big In Japan by Alphaville](https://www.youtube.com/embed/_IYjBCLKmBE). This first version was without the automatic lighting effects.
-
-I also rendered a map for `Maria [I Like It Loud]` by Scooter after adding automatic lighting capabilities. The result can be seen on [Youtube](https://youtu.be/iQaO4YG7Su0)
+## The results
+Here are two examples of songs produced by this code:
+* [Big In Japan by Alphaville](https://www.youtube.com/embed/_IYjBCLKmBE) (first version, without lighting effects)
+* [Maria - I Like It Loud by Scooter](https://youtu.be/iQaO4YG7Su0)
 
 ## How to use this code
 
@@ -38,8 +45,12 @@ At a high level, the following steps are necessary:
 
 ^ About the two last steps: the result will be quite random, and not worthy of standing along all the great work from real mappers. 
 
+## Loading Libraries
+
 
 ```python
+# pip install -r requirements.txt
+
 import json
 import random
 from os.path import exists
@@ -79,7 +90,9 @@ For this, I am searching for folders in the customeLevels folder, and uses any s
 # MODIFY ME
 
 difficulty = "ExpertStandard.dat"
-filters = ["dee", "nixie", "joetastic", "faded", "emir", "ge2toro", "nitronik"]#, "misterlihao"]
+
+# This is where I define filters for songs. Using the mapper's name works well
+filters = ["dee", "nixie", "joetastic", "faded", "ge2toro", "nitronik", "misterlihao", "majorpickle"]
 ```
 
 ## Queue of Songs to map
@@ -103,18 +116,16 @@ The inconvenient of the current method is that if I train on maps that are incon
 # MODIFY ME
 
 song_queues = [
-    {
-        "folder": "Alphaville - Big In Japan - 97.79",
-        "first_beat": 16,
-        "last_beat": 368,
-    },
-    {
-        "folder": "Scooter - Maria (I Like It Loud)",
-        "first_beat": 8,
-        "last_beat": 510
-      },
+    { "folder": "Alphaville - Big In Japan - 97.79", "first_beat": 16, "last_beat": 368 },
+    { "folder": "Scooter - Maria (I Like It Loud)", "first_beat": 8, "last_beat": 510 },
+    { "folder": "Vanilla Ice - Ice Ice Baby", "first_beat": 8, "last_beat": 505 },
+    { "folder": "Les Rita Mitsouko - C'est comme ça", "first_beat": 8, "last_beat": 848 },
+    { "folder": "Ramasutra - Marder", "first_beat": 34, "last_beat": 602 },
+    { "folder": "Les Trois Accords - Bamboula", "first_beat": 8,"last_beat": 540},
 ]
 ```
+
+## Configuring Sequence Length and Precision
 
 
 ```python
@@ -130,84 +141,25 @@ sequence_length = 2
 precision = 16
 ```
 
+## Extracting the list of all files that will be used for training
+
 
 ```python
 def get_list_map_files(customLevels_folder, filters):
+    filters_lower = [x.lower() for x in filters]
     return sorted(list(set([
         x for x in os.listdir(customLevels_folder)
-        if any(y in x.lower() for y in filters)
+        if any(y in x.lower() for y in filters_lower)
     ])))
 
 
 notes_files = get_list_map_files(customLevels_folder, filters)
 assert len(notes_files) > 0, "There are no training files. check your `customerLevels_folder`, or your `filters` variable"
 print('Number of songs used for training:', len(notes_files))
-notes_files
+# notes_files
 ```
 
-    Number of songs used for training: 56
-
-
-
-
-
-    ['17e36 (PAUSE - nitronik.exe)',
-     '1a0b9 (Lone Digger - Nixie.Korten)',
-     '1a0be (Wonderland - Nixie.Korten)',
-     '1bbb6 (Emir - ROCKSTAR)',
-     '1bd21 (Joetastic - KING)',
-     '1dc65 (Lost One no Goukoku - Joetastic)',
-     '1e06e (Happy Wedding Mae Song - Ge2toro)',
-     '20ac4 (About You - DeeDee)',
-     '20ac8 (Pepas - Dee-Dee)',
-     '20fc6 (Horizon - Ge2toro)',
-     '2142b (Graveyard Shift - Ge2toro)',
-     '21540 (Toxic - Emir)',
-     '22e58 (Tokugawa Cup Noodle Kinshirei - Ge2toro)',
-     '22ee8 (Bones - Faded 99)',
-     '23372 (IDGAF - Faded 99)',
-     '2373d (Boulevard of Broken Dreams - Faded 99)',
-     '23af5 (Tada Kimini Hare - Emir)',
-     '240f4 (Loco - Dee-Dee)',
-     '2466c (Miku - Ge2toro)',
-     '249ee (Chitty Chitty Bang Bang (TV Size) - Joetastic)',
-     '25a48 (Stop The World - Joetastic)',
-     '25a6b (Supersonic - Dee-Dee)',
-     '260c8 (I hope you can become an adult someday - Emir)',
-     '26407 (So Sick - nitronik.exe)',
-     '26408 (Grime Thing - nitronik.exe)',
-     '26514 (Solo Mission - Faded 99)',
-     '266b3 (Garakuta Doll Play - Ge2toro)',
-     '268b0 (WindFall - Emir)',
-     '268bf (KEEP ON MOVING - Joetastic)',
-     '26f79 (Kernkraft 400 - Faded 99)',
-     '270ed (WOW BB - DeeDee)',
-     '271da (All Night - Nixie.Korten)',
-     '271db (Bom Bom - Nixie.Korten)',
-     '271df (Perfume - Nixie.Korten)',
-     '271e0 (Light Up The Night - Nixie.Korten)',
-     '271e1 (Mr Magpie - Nixie.Korten)',
-     '271e4 (Wake Up Romeo - Nixie.Korten)',
-     '27278 (Shichiten Hakki Shijou Shugi! - Ge2toro)',
-     '27a7d (Calabria - DeeDee)',
-     '27ad9 (Symphony - Lekrkoekj & Faded99)',
-     '27bfa (Stressed Out (2022 Remap) - Joetastic)',
-     '27bfe (Jump Around - Pixelguy & nitronik.exe)',
-     '27ca1 (Levitate - nitronik.exe)',
-     '27ca3 (Low - nitronik.exe)',
-     '27ca5 (No Time - nitronik.exe)',
-     '27ea9 (純透明少年 Semi-Transparent boy - Emir)',
-     '27f46 (Makudonarudo (Tokyo bon) - Emir)',
-     '2810b (Viva La Vida (2022 Remap) - Joetastic)',
-     '284dd (Younger - Faded 99)',
-     '2867e (1 2 Fanclub - Joetastic)',
-     '288a0 (Speechless - Joetastic & RealCoda)',
-     '4481 (Barbra Streisand - Joetastic)',
-     '65c9 (Sweet Dreams (Are Made Of This) - Joetastic)',
-     '75a8 (Silhouette (TV Size) - Joetastic)',
-     'b5ff (Sakuranbo - Emir)',
-     'c213 (Rhythm Is A Dancer - nitronik.exe)']
-
+    Number of songs used for training: 78
 
 
 ## Confirming configurations
@@ -290,7 +242,7 @@ current1['config']['info_dat']
 
 
 
-## How Blocks Are Encoded
+## Intro to Beat Saber Data Files: How Blocks Are Encoded
 
 ExpertStandard.dat is a JSON file, and contains multiple sections. The one that is interesting is the "_notes" section, which contains a long series of entries like the folowing:
 
@@ -423,38 +375,67 @@ assert json.dumps(decode_lighting(sample_light['_time'], precision, '[["3abwbf"]
 
 ```
 
+## Turning off the lights at the end of the song
+
+
+```python
+def turnoff_lights(beat):
+    sequences = []
+    for i in [0, 1, 2, 3, 4, 12, 13]:
+        sequences.append(
+            {
+                "_time": beat,
+                "_type": i,
+                "_value": 0
+            }
+        )
+    return sequences
+```
+
 ## Training functions
 
 
 ```python
-# received a track sequence, non encoded in json, returns the last part encoded in a json string
-def extract_last_pattern(seq, sequence_length, precision):
-    return json.dumps(seq[-(sequence_length * precision):])
-
 def count_patterns(sequence):
-    return len(sequence)
+    blocks = 0
+    for i in sequence:
+        blocks += len(i)
+    return blocks
+
+def check_integrity(current):
+    global sequence_length
+    global precision
+    
+    if len(current) == sequence_length * precision:
+        return True
+    
+    print(f"failed: {len(current)} vs {sequence_length * precision}")
+    return False
 
 def remember_patterns(track, sequence_length, precision, track_name = ""):
     global following
+    global encoded_song
     
     previous_pattern = ""
 
     for i in range(len(track)):
-        current_pattern = json.dumps(track[i])
+        if check_integrity(track[i]):
+            current_pattern = json.dumps(track[i])
+            
+            if file not in encoded_song.keys():
+                encoded_song[file] = []
+                
+            encoded_song[file].append(current_pattern)
         
-        if previous_pattern not in following.keys():
-            following[previous_pattern] = []
+            if previous_pattern not in following.keys():
+                following[previous_pattern] = []
 
-        if count_patterns(track[i]) > 0:
-            following[previous_pattern].append(current_pattern)     
-            previous_pattern = current_pattern 
-
-def give_me_following(full_encoded_seq, sequence_length, precision):
-    decoded_seq = json.loads(full_encoded_seq)
-    
-    last_pattern = extract_last_pattern(decoded_seq, sequence_length, precision)
-    
-    return last_pattern
+            if count_patterns(track[i]) > 0:
+                following[previous_pattern].append(current_pattern)     
+                previous_pattern = current_pattern 
+        else:
+            print("current pattern failed the integrity test:", current_pattern)
+            raise
 ```
 
 ## File processing functions
@@ -468,7 +449,7 @@ def read_track_file(base_folder, song_output_folder, difficulty_file):
         with open(filename) as f:
             return json.load(f)
     
-    print("File '{}/{}' not found. skipping folder".format(song_output_folder, difficulty_file))
+    # print("( ) file '{}/{}' not found. skipping folder".format(song_output_folder, difficulty_file))
     return False
 
 def find_lighting_for_note(lightings, t):
@@ -482,8 +463,7 @@ def find_lighting_for_note(lightings, t):
 
 def convert_json_to_patterns(file, sequence_length, precision, content):
     if "_notes" not in content.keys() or "_events" not in content.keys():
-        print("* this is a new song:", file)
-        print(content.keys())
+        # print("( ) this is a new song with arks:", file)
         return False
     
     first_note = math.floor(content["_notes"][0]["_time"])
@@ -491,9 +471,9 @@ def convert_json_to_patterns(file, sequence_length, precision, content):
     
     nb_sequence = int(((last_note - first_note)) / sequence_length)+1
     
-    print("file: {}, first_note: {}, last_note: {}, precision: {}, nb_sequences: {}".format(
-        file, first_note, last_note, precision, nb_sequence
-    ))
+    # print("(+) file: {}, first_note: {}, last_note: {}, precision: {}, nb_sequences: {}".format(
+    #   file, first_note, last_note, precision, nb_sequence
+    # ))
     
     # initializing an empty list that will keep track of the notes
     track = [[[] for y in range(sequence_length * precision)] for x in range(int(nb_sequence))]
@@ -519,7 +499,7 @@ def process_file(folder, file, difficulty, precision, sequence_length):
     notes_json = read_track_file(folder, file, difficulty)
     
     if notes_json != False:
-        track = convert_json_to_patterns(file, sequence_length, precision, notes_json)        
+        track = convert_json_to_patterns(file, sequence_length, precision, notes_json)
         
         if track != False:
             remember_patterns(track, sequence_length, precision, file)
@@ -529,74 +509,16 @@ def process_file(folder, file, difficulty, precision, sequence_length):
 
 This section goes through all training files and register transitions in the `following` global variable.
 
+The `encoded_song` variable will contain the complete encoded songs. This is useful to find out which sequence comes from what maps later on.
+
 
 ```python
 following = {}
+encoded_song = {}
 
 for file in notes_files:
     process_file(customLevels_folder, file, difficulty, precision, sequence_length)
 ```
-
-    file: 17e36 (PAUSE - nitronik.exe), first_note: 4, last_note: 254, precision: 16, nb_sequences: 126
-    file: 1a0b9 (Lone Digger - Nixie.Korten), first_note: 4, last_note: 347.5, precision: 16, nb_sequences: 172
-    file: 1a0be (Wonderland - Nixie.Korten), first_note: 15, last_note: 323.25, precision: 16, nb_sequences: 155
-    file: 1bbb6 (Emir - ROCKSTAR), first_note: 6, last_note: 470.75, precision: 16, nb_sequences: 233
-    file: 1bd21 (Joetastic - KING), first_note: 5, last_note: 373.4986877441406, precision: 16, nb_sequences: 185
-    file: 1dc65 (Lost One no Goukoku - Joetastic), first_note: 6, last_note: 284.875, precision: 16, nb_sequences: 140
-    File '1e06e (Happy Wedding Mae Song - Ge2toro)/ExpertStandard.dat' not found. skipping folder
-    file: 20ac4 (About You - DeeDee), first_note: 3, last_note: 367, precision: 16, nb_sequences: 183
-    file: 20ac8 (Pepas - Dee-Dee), first_note: 5, last_note: 613, precision: 16, nb_sequences: 305
-    file: 20fc6 (Horizon - Ge2toro), first_note: 4, last_note: 622, precision: 16, nb_sequences: 310
-    file: 2142b (Graveyard Shift - Ge2toro), first_note: 4, last_note: 528, precision: 16, nb_sequences: 263
-    file: 21540 (Toxic - Emir), first_note: 8, last_note: 479.0625, precision: 16, nb_sequences: 236
-    file: 22e58 (Tokugawa Cup Noodle Kinshirei - Ge2toro), first_note: 7, last_note: 601, precision: 16, nb_sequences: 298
-    file: 22ee8 (Bones - Faded 99), first_note: 3, last_note: 298.016, precision: 16, nb_sequences: 148
-    file: 23372 (IDGAF - Faded 99), first_note: 3, last_note: 226, precision: 16, nb_sequences: 112
-    file: 2373d (Boulevard of Broken Dreams - Faded 99), first_note: 4, last_note: 719.094, precision: 16, nb_sequences: 358
-    file: 23af5 (Tada Kimini Hare - Emir), first_note: 7, last_note: 463, precision: 16, nb_sequences: 229
-    file: 240f4 (Loco - Dee-Dee), first_note: 4, last_note: 480, precision: 16, nb_sequences: 239
-    file: 2466c (Miku - Ge2toro), first_note: 5, last_note: 311, precision: 16, nb_sequences: 154
-    file: 249ee (Chitty Chitty Bang Bang (TV Size) - Joetastic), first_note: 3, last_note: 187, precision: 16, nb_sequences: 93
-    * this is a new song: 25a48 (Stop The World - Joetastic)
-    dict_keys(['version', 'bpmEvents', 'rotationEvents', 'colorNotes', 'bombNotes', 'obstacles', 'sliders', 'burstSliders', 'waypoints', 'basicBeatmapEvents', 'colorBoostBeatmapEvents', 'lightColorEventBoxGroups', 'lightRotationEventBoxGroups', 'basicEventTypesWithKeywords', 'useNormalEventsAsCompatibleEvents', 'customData'])
-    file: 25a6b (Supersonic - Dee-Dee), first_note: 12, last_note: 380, precision: 16, nb_sequences: 185
-    file: 260c8 (I hope you can become an adult someday - Emir), first_note: 7, last_note: 509, precision: 16, nb_sequences: 252
-    file: 26407 (So Sick - nitronik.exe), first_note: 4, last_note: 292.5, precision: 16, nb_sequences: 145
-    file: 26408 (Grime Thing - nitronik.exe), first_note: 4, last_note: 326, precision: 16, nb_sequences: 162
-    file: 26514 (Solo Mission - Faded 99), first_note: 3, last_note: 370.75, precision: 16, nb_sequences: 184
-    file: 266b3 (Garakuta Doll Play - Ge2toro), first_note: 36, last_note: 417.8333740234375, precision: 16, nb_sequences: 191
-    file: 268b0 (WindFall - Emir), first_note: 10, last_note: 746, precision: 16, nb_sequences: 369
-    file: 268bf (KEEP ON MOVING - Joetastic), first_note: 4, last_note: 372, precision: 16, nb_sequences: 185
-    file: 26f79 (Kernkraft 400 - Faded 99), first_note: 4, last_note: 344, precision: 16, nb_sequences: 171
-    file: 270ed (WOW BB - DeeDee), first_note: 3, last_note: 404, precision: 16, nb_sequences: 201
-    file: 271da (All Night - Nixie.Korten), first_note: 4, last_note: 335, precision: 16, nb_sequences: 166
-    file: 271db (Bom Bom - Nixie.Korten), first_note: 4, last_note: 355.667, precision: 16, nb_sequences: 176
-    file: 271df (Perfume - Nixie.Korten), first_note: 6, last_note: 606, precision: 16, nb_sequences: 301
-    file: 271e0 (Light Up The Night - Nixie.Korten), first_note: 4, last_note: 475.5, precision: 16, nb_sequences: 236
-    file: 271e1 (Mr Magpie - Nixie.Korten), first_note: 4, last_note: 416, precision: 16, nb_sequences: 207
-    file: 271e4 (Wake Up Romeo - Nixie.Korten), first_note: 4, last_note: 362, precision: 16, nb_sequences: 180
-    file: 27278 (Shichiten Hakki Shijou Shugi! - Ge2toro), first_note: 6, last_note: 570.75, precision: 16, nb_sequences: 283
-    file: 27a7d (Calabria - DeeDee), first_note: 4, last_note: 264.281, precision: 16, nb_sequences: 131
-    file: 27ad9 (Symphony - Lekrkoekj & Faded99), first_note: 6, last_note: 517.5, precision: 16, nb_sequences: 256
-    file: 27bfa (Stressed Out (2022 Remap) - Joetastic), first_note: 7, last_note: 569.0850219726562, precision: 16, nb_sequences: 282
-    file: 27bfe (Jump Around - Pixelguy & nitronik.exe), first_note: 19, last_note: 434, precision: 16, nb_sequences: 208
-    file: 27ca1 (Levitate - nitronik.exe), first_note: 4, last_note: 439, precision: 16, nb_sequences: 218
-    file: 27ca3 (Low - nitronik.exe), first_note: 4, last_note: 356, precision: 16, nb_sequences: 177
-    file: 27ca5 (No Time - nitronik.exe), first_note: 6, last_note: 394, precision: 16, nb_sequences: 195
-    file: 27ea9 (純透明少年 Semi-Transparent boy - Emir), first_note: 8, last_note: 913.5, precision: 16, nb_sequences: 453
-    file: 27f46 (Makudonarudo (Tokyo bon) - Emir), first_note: 6, last_note: 401.667, precision: 16, nb_sequences: 198
-    * this is a new song: 2810b (Viva La Vida (2022 Remap) - Joetastic)
-    dict_keys(['version', 'bpmEvents', 'rotationEvents', 'colorNotes', 'bombNotes', 'obstacles', 'sliders', 'burstSliders', 'waypoints', 'basicBeatmapEvents', 'colorBoostBeatmapEvents', 'lightColorEventBoxGroups', 'lightRotationEventBoxGroups', 'basicEventTypesWithKeywords', 'useNormalEventsAsCompatibleEvents', 'customData'])
-    file: 284dd (Younger - Faded 99), first_note: 2, last_note: 351.333, precision: 16, nb_sequences: 175
-    file: 2867e (1 2 Fanclub - Joetastic), first_note: 10, last_note: 291, precision: 16, nb_sequences: 141
-    * this is a new song: 288a0 (Speechless - Joetastic & RealCoda)
-    dict_keys(['version', 'bpmEvents', 'rotationEvents', 'colorNotes', 'bombNotes', 'obstacles', 'sliders', 'burstSliders', 'waypoints', 'basicBeatmapEvents', 'colorBoostBeatmapEvents', 'lightColorEventBoxGroups', 'lightRotationEventBoxGroups', 'basicEventTypesWithKeywords', 'useNormalEventsAsCompatibleEvents', 'customData'])
-    File '4481 (Barbra Streisand - Joetastic)/ExpertStandard.dat' not found. skipping folder
-    file: 65c9 (Sweet Dreams (Are Made Of This) - Joetastic), first_note: 5, last_note: 437.1773681640625, precision: 16, nb_sequences: 217
-    File '75a8 (Silhouette (TV Size) - Joetastic)/ExpertStandard.dat' not found. skipping folder
-    file: b5ff (Sakuranbo - Emir), first_note: 13, last_note: 659.6091918945312, precision: 16, nb_sequences: 324
-    file: c213 (Rhythm Is A Dancer - nitronik.exe), first_note: 4, last_note: 471.25, precision: 16, nb_sequences: 234
-
 
 ## Audio File Analysis
 
@@ -667,7 +589,7 @@ print(f"audio samples per beat: {rythme['sample_per_beat']}")
 
 
     
-![png](beatsaber_map_generator_files/beatsaber_map_generator_30_1.png)
+![png](beatsaber_map_generator_files/beatsaber_map_generator_35_1.png)
     
 
 
@@ -708,23 +630,21 @@ assert len(break_down) > 0, "the break_down variable should not be empty"
 
 
 ```python
-print(range0, range3) 
-```
-
-    2553 25536
-
-
-
-```python
-def trim_audio(breakdown, current, precision):
-    print(current['first_beat'], current['last_beat'])
+def trim_audio(current, precision, Fs, aud):
+    rythme = get_rythme(current['config']['info_dat'], Fs, aud)
+    range0, range3, break_down = get_audio_ranges(rythme['audio'], rythme['sample_per_beat'], precision)
+    
     return break_down[current['first_beat']*precision:]
 
-trimmed_intensity = trim_audio(break_down, current1, precision)
+
+trimmed_intensity = trim_audio(current1, precision, Fs, aud)
 assert len(trimmed_intensity) < len(break_down), "trimmed_intensity should be smaller than break_down"
 ```
 
-    16 368
+
+    
+![png](beatsaber_map_generator_files/beatsaber_map_generator_37_0.png)
+    
 
 
 
@@ -733,7 +653,6 @@ print('beginning...')
 print(break_down[:current1['first_beat']*(precision)], '*', break_down[current1['first_beat']*precision:(current1['first_beat']*sequence_length*precision)])
 print('...end')
 print(break_down[-(current1['last_beat']*precision):current1['last_beat']], '*', break_down[-current1['last_beat']:])
-
 ```
 
     beginning...
@@ -828,7 +747,50 @@ test_selection(audio_sequence, best_candidate)
 
 
 ```python
-def select(array, audio_sample):
+def find_origins(selected):
+    sources = []
+    
+    for key in encoded_song.keys():
+        c = encoded_song[key].count(selected)
+        if c > 0:
+            if key not in sources:
+                sources.append(key)
+            
+    return sources
+
+def number_successors(candidates, array):
+    global following
+    counts = [0] * len(candidates)
+    
+    for i, s in enumerate(candidates):
+        if array[s] in following.keys():
+            counts[i] = len(following[array[s]])
+        
+    return counts
+
+def add_bookmark(song, beat):
+    return {
+        "_time": beat,
+        "_name": song
+    }
+
+def guess_origin(last_source, sources, known_sources):
+    
+    if last_source not in sources:
+        most_likely_song = ""
+        most_likely_count = -1
+
+        for s in sources:
+            c = known_sources.count(s) 
+            if c > most_likely_count:
+                most_likely_count = c
+                most_likely_song = s
+    return most_likely_song
+```
+
+
+```python
+def select(array, audio_sample):    
     best_fits = []
     
     np_audio_sample = np.array(audio_sample)
@@ -842,15 +804,20 @@ def select(array, audio_sample):
         best_fits.append(sum(amplification) - sum(proximity))
 
     
-    election = [i for i in range(len(best_fits)) if best_fits[i] == max(best_fits)]
-    selected = array[random.choice(election)]
+    candidates = [i for i in range(len(best_fits)) if best_fits[i] == max(best_fits)]
+    forward_checks = number_successors(candidates, array)
+    electables = [candidates[i] for i in range(len(candidates)) if forward_checks[i] > 0]
+    if len(electables) == 0:
+        elected = random.choice(candidates)
+    else: # this case happens when there is no candidate with a following sequence. the code will recover later
+        elected = random.choice(electables)
 
     if False:
         print(audio_sample)
-        print(election)
-        print(len(array), max(best_fits), len(candidates), 'selected:', selected)
+        print(elected)
+        print(len(array), max(best_fits), len(candidates), 'elected:', elected)
     
-    return random.choice(array)  
+    return array[elected]
 ```
 
 ## saving the generated sequence in the output track file.
@@ -859,19 +826,20 @@ If it crashes here because the output file does not exists, you might need to ge
 
 
 ```python
-def save_output(output_file, new_track, new_lights):
-    global start_time
-    
+def save_output(output_file, new_track, new_lights, new_bookmarks):    
     with open(output_file) as f:
         output_song = json.load(f)
 
     output_song["_notes"] = new_track
     output_song["_events"] = new_lights
+    
+    if "_customData" not in output_song.keys():
+        output_song[_customData] = {}
+    
+    output_song["_customData"]["_bookmarks"] = new_bookmarks
 
     with open(output_file, 'w') as f:
         f.write(json.dumps(output_song))
-
-    print("Total run time: {:0.2f} seconds".format(time.time() - start_time))
 
 ```
 
@@ -888,83 +856,237 @@ The selected sequence will be checked against potential following sequences (var
 
 
 ```python
-for song in song_queues:
-    current_song = open_file_info(song, customWIPLevels_folder)
-    Fs, aud = load_audio(current_song['config']['audio_file'])
-    print(Fs, len(aud))
-    
-    rythme = get_rythme(current_song['config']['info_dat'], Fs, aud)
-    range0, range3, break_down = get_audio_ranges(rythme['audio'], rythme['sample_per_beat'], precision)
-    trimmed_intensity = trim_audio(break_down, current_song, precision)
+print("Total Training Time: {:0.2f} seconds".format(time.time() - start_time))
 
+def generate_seed(aud, filename, sample_per_beat):
+    seed = np.array(aud[len(aud)//len(filename)-sample_per_beat:len(aud)//len(filename)+sample_per_beat]).sum()
+    print(f"\trandom seed: {sample_per_beat} {seed}")
+    return seed   
+    
+def extract_audio_sample(beat, precision, sequence_length, trimmed_intensity):
+    l = beat * precision * sequence_length
+    r = (beat+1) * precision * sequence_length
+    return trimmed_intensity[l:r]
+    
+    
+for song in song_queues:
+    start_time = time.time()
+    
+    match_stats = []
+    last_source = False
+    
+    current_song = open_file_info(song, customWIPLevels_folder)
+    
+    print(f"{current_song['folder']}")
+    
+    Fs, aud = load_audio(current_song['config']['audio_file'])
+    trimmed_intensity = trim_audio(current_song, precision, Fs, aud)
+
+    
+    random.seed(generate_seed(aud, current_song['folder'], rythme['sample_per_beat']))
+    
+    base = current_song['first_beat']
     current_pattern = ""
+    beat = 0
     new_track = []
     new_lights = []
-    
-    seed = np.array(aud[len(aud)//len(current_song['folder'])-rythme['sample_per_beat']:len(aud)//len(current_song['folder'])+rythme['sample_per_beat']]).sum()
-    
-    print(current_song['folder'], 'random seed:', rythme['sample_per_beat'], seed)
-    random.seed(seed)
-
-    beat = 0
-    base = current_song['first_beat']
+    new_bookmarks = []
     
     while base < current_song['last_beat']:    
-        l = beat * precision * sequence_length
-        r = (beat+1) * precision * sequence_length
-        audio_sample = trimmed_intensity[l:r]
+        audio_sample = extract_audio_sample(beat, precision, sequence_length, trimmed_intensity)
 
         if current_pattern in following.keys():
             pattern = select(following[current_pattern], audio_sample)
         else:
             pattern = select(following[""], audio_sample)
 
-        decoded = decode_pattern(base, precision, pattern)
+        sources = find_origins(pattern)
+        if last_source not in sources:
+            most_likely_song = guess_origin(last_source, sources, match_stats)
+            new_bookmarks.append(add_bookmark(most_likely_song, base))
+            last_source = most_likely_song
+        match_stats = match_stats + sources     
         
+        # add block patern to the new track
+        decoded = decode_pattern(base, precision, pattern)        
         new_track = new_track + decoded
 
+        # add the light pattern to the light track
         decoded_light = decode_lighting(base, precision, pattern)
         new_lights = new_lights + decoded_light
 
-        current_pattern = give_me_following(pattern, sequence_length, precision)
+        # update the current pattern
+        current_pattern = pattern
 
         base += sequence_length
         beat+=1
     
-    save_output(current_song['config']['output_file'], new_track, new_lights)
+    new_lights = new_lights + turnoff_lights(base)
+    new_bookmarks.append(add_bookmark("FIN", base))
+    
+    save_output(current_song['config']['output_file'], new_track, new_lights, new_bookmarks)
+    
+    
+    print("\tOrigin of the sequences:")
+    for song in encoded_song.keys():
+        c = match_stats.count(song)
+        if c > 0:
+            print("\t\t{:3.1f}%: {}".format(c / len(match_stats) * 100, song))
+    print("\tBookmarks")
+    for b in new_bookmarks:
+        print('\t\tbeat {}: {}'.format(b['_time'], b['_name']))
+    
+    print("\tSong rendering time: {:0.2f} seconds".format(time.time() - start_time))
     
 ```
 
-    44100 10313147
+    Total Training Time: 23.43 seconds
+    Alphaville - Big In Japan - 97.79
 
 
 
     
-![png](beatsaber_map_generator_files/beatsaber_map_generator_41_1.png)
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_1.png)
     
 
 
-    16 368
-    Alphaville - Big In Japan - 97.79 random seed: 27057 -61481
-    Total run time: 23.91 seconds
-    44100 9856018
+    	random seed: 27057 -61481
+    	Origin of the sequences:
+    		52.5%: 22e63 (くうになる - misterlihao)
+    		0.6%: 260d1 (えすけーぷ - misterlihao)
+    		46.9%: 27ca5 (No Time - nitronik.exe)
+    	Bookmarks
+    		beat 16: 27ca5 (No Time - nitronik.exe)
+    		beat 182: 22e63 (くうになる - misterlihao)
+    		beat 368: FIN
+    	Song rendering time: 7.32 seconds
+    Scooter - Maria (I Like It Loud)
 
 
 
     
-![png](beatsaber_map_generator_files/beatsaber_map_generator_41_3.png)
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_3.png)
     
 
 
-    8 510
-    Scooter - Maria (I Like It Loud) random seed: 18503 12219149
-    Total run time: 30.86 seconds
+    	random seed: 27057 11787999
+    	Origin of the sequences:
+    		42.6%: 27a7d (Calabria - DeeDee)
+    		57.4%: 65c9 (Sweet Dreams (Are Made Of This) - Joetastic)
+    	Bookmarks
+    		beat 8: 65c9 (Sweet Dreams (Are Made Of This) - Joetastic)
+    		beat 296: 27a7d (Calabria - DeeDee)
+    		beat 510: FIN
+    	Song rendering time: 6.84 seconds
+    Vanilla Ice - Ice Ice Baby
+
+
+
+    
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_5.png)
+    
+
+
+    	random seed: 27057 -344288
+    	Origin of the sequences:
+    		100.0%: 28efd (Contigo - Faded 99)
+    	Bookmarks
+    		beat 8: 28efd (Contigo - Faded 99)
+    		beat 506: FIN
+    	Song rendering time: 8.22 seconds
+    Les Rita Mitsouko - C'est comme ça
+
+
+
+    
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_7.png)
+    
+
+
+    	random seed: 27057 996495
+    	Origin of the sequences:
+    		8.1%: 1f767 (アリスブルー - misterlihao)
+    		6.3%: 20fc6 (Horizon - Ge2toro)
+    		1.6%: 21307 (ただ声一つ - misterlihao)
+    		0.4%: 21333 (全部君のせいだ - misterlihao)
+    		0.2%: 2142b (Graveyard Shift - Ge2toro)
+    		0.2%: 21979 (フクロウさん - misterlihao)
+    		24.4%: 250af (うらたねこ♀ - misterlihao)
+    		0.4%: 2528b (おにけもだんす - misterlihao)
+    		0.7%: 254a8 (感情ディシーブ - misterlihao)
+    		24.6%: 27593 (推し変なんて許さない！ - misterlihao)
+    		19.7%: 27ca5 (No Time - nitronik.exe)
+    		0.2%: 28c6b (Lean On Me - Faded 99)
+    		1.3%: 28dfe (愛のモンスター - misterlihao)
+    		11.9%: 65c9 (Sweet Dreams (Are Made Of This) - Joetastic)
+    	Bookmarks
+    		beat 8: 27593 (推し変なんて許さない！ - misterlihao)
+    		beat 228: 20fc6 (Horizon - Ge2toro)
+    		beat 276: 1f767 (アリスブルー - misterlihao)
+    		beat 278: 28dfe (愛のモンスター - misterlihao)
+    		beat 286: 1f767 (アリスブルー - misterlihao)
+    		beat 324: 27ca5 (No Time - nitronik.exe)
+    		beat 500: 1f767 (アリスブルー - misterlihao)
+    		beat 526: 250af (うらたねこ♀ - misterlihao)
+    		beat 742: 65c9 (Sweet Dreams (Are Made Of This) - Joetastic)
+    		beat 848: FIN
+    	Song rendering time: 9.30 seconds
+    Ramasutra - Marder
+
+
+
+    
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_9.png)
+    
+
+
+    	random seed: 27057 -347426
+    	Origin of the sequences:
+    		0.3%: 205d1 (くうになる - misterlihao)
+    		1.9%: 20fc6 (Horizon - Ge2toro)
+    		1.0%: 21307 (ただ声一つ - misterlihao)
+    		0.6%: 22846 (バニー - misterlihao)
+    		0.3%: 22ee8 (Bones - Faded 99)
+    		0.3%: 240f4 (Loco - Dee-Dee)
+    		0.6%: 250af (うらたねこ♀ - misterlihao)
+    		29.2%: 2528b (おにけもだんす - misterlihao)
+    		1.3%: 254a8 (感情ディシーブ - misterlihao)
+    		32.4%: 259b9 (La Funka - Majorpickle)
+    		1.3%: 25a6b (Supersonic - Dee-Dee)
+    		20.2%: 26408 (Grime Thing - nitronik.exe)
+    		10.6%: 2923d (あの夏の旋律へ - misterlihao)
+    	Bookmarks
+    		beat 34: 22846 (バニー - misterlihao)
+    		beat 36: 26408 (Grime Thing - nitronik.exe)
+    		beat 160: 2528b (おにけもだんす - misterlihao)
+    		beat 338: 259b9 (La Funka - Majorpickle)
+    		beat 532: 2923d (あの夏の旋律へ - misterlihao)
+    		beat 596: 20fc6 (Horizon - Ge2toro)
+    		beat 602: FIN
+    	Song rendering time: 9.27 seconds
+    Les Trois Accords - Bamboula
+
+
+
+    
+![png](beatsaber_map_generator_files/beatsaber_map_generator_46_11.png)
+    
+
+
+    	random seed: 27057 1304484
+    	Origin of the sequences:
+    		0.4%: 21333 (全部君のせいだ - misterlihao)
+    		82.6%: 22e63 (くうになる - misterlihao)
+    		0.4%: 24f18 (和音 - misterlihao)
+    		0.7%: 260d1 (えすけーぷ - misterlihao)
+    		15.9%: 270ed (WOW BB - DeeDee)
+    	Bookmarks
+    		beat 8: 22e63 (くうになる - misterlihao)
+    		beat 454: 270ed (WOW BB - DeeDee)
+    		beat 540: FIN
+    	Song rendering time: 6.45 seconds
 
 
 ## Conclusion
-
-With the initial version of the code, I generated this mapping for [Big In Japan by Alphaville](https://youtu.be/_IYjBCLKmBE). That first version was not adding lighting effects.
-
-The code in this notebook was also used to generate a mapping for [Maria (I Like It Loud) by Scooter](https://www.youtube.com/watch?v=iQaO4YG7Su0), but his time with lighting effects.
 
 Obviously it will never match the quality of a talented mapper. Still, it's playable. More than everything, it was fun to code.
